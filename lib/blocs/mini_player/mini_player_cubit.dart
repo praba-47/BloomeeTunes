@@ -92,6 +92,16 @@ class MiniPlayerState extends Equatable {
 class MiniPlayerCubit extends Cubit<MiniPlayerState> {
   final BloomeePlayerCubit _playerCubit;
   StreamSubscription? _sub;
+    String? _dismissedId;
+  bool _awaitingPause = false;
+
+  /// User closed the mini player (swipe down / X button).
+  void dismiss() {
+    _dismissedId = state.track?.id;
+    _awaitingPause = true;
+    _playerCubit.bloomeePlayer.pause();
+    emit(const MiniPlayerState.hidden());
+  }
 
   MiniPlayerCubit({required BloomeePlayerCubit playerCubit})
       : _playerCubit = playerCubit,
@@ -112,6 +122,10 @@ class MiniPlayerCubit extends Cubit<MiniPlayerState> {
           (media, engineState, playing, resolving),
     ).listen((record) {
       final (media, engineState, playing, resolving) = record;
+                if (media == null || media.id == 'Null') {
+        if (state.isVisible) emit(const MiniPlayerState.hidden());
+        return;
+      }
 
       if (media == null || media.id == 'Null') {
         if (state.isVisible) emit(const MiniPlayerState.hidden());
@@ -119,6 +133,20 @@ class MiniPlayerCubit extends Cubit<MiniPlayerState> {
       }
 
       final track = mediaItemToTrack(media);
+                if (_dismissedId != null) {
+        if (media.id != _dismissedId) {
+          _dismissedId = null; // new song -> show again
+          _awaitingPause = false;
+        } else if (!playing) {
+          _awaitingPause = false;
+          if (state.isVisible) emit(const MiniPlayerState.hidden());
+          return;
+        } else if (_awaitingPause) {
+          return; // pause not applied yet
+        } else {
+          _dismissedId = null; // user resumed same song
+        }
+      }
 
       emit(MiniPlayerState(
         track: track,
