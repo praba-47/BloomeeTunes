@@ -232,7 +232,7 @@ class _MiniPlayerCardState extends State<MiniPlayerCard>
                             context.pushNamed(RoutePaths.addToPlaylistScreen);
                           },
                         ),
-                                                _ControlButton(
+                        _ControlButton(
                           icon: Icons.close,
                           size: 18,
                           onPressed: () {
