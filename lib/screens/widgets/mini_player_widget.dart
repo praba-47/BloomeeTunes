@@ -145,9 +145,13 @@ class _MiniPlayerCardState extends State<MiniPlayerCard>
   }
 
   void _onVerticalDragEnd(DragEndDetails details) {
-    if ((details.primaryVelocity ?? 0) < -200) {
+    final v = details.primaryVelocity ?? 0;
+    if (v < -200) {
       HapticFeedback.lightImpact();
       context.read<PlayerOverlayCubit>().showPlayer();
+    } else if (v > 200) {
+      HapticFeedback.mediumImpact();
+      context.read<MiniPlayerCubit>().dismiss(); // swipe down = close
     }
   }
 
@@ -226,6 +230,14 @@ class _MiniPlayerCardState extends State<MiniPlayerCard>
                             HapticFeedback.lightImpact();
                             context.read<AddToPlaylistCubit>().setTrack(song);
                             context.pushNamed(RoutePaths.addToPlaylistScreen);
+                          },
+                        ),
+                                                _ControlButton(
+                          icon: Icons.close,
+                          size: 18,
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            context.read<MiniPlayerCubit>().dismiss();
                           },
                         ),
                       ],
