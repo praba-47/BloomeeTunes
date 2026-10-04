@@ -80,20 +80,17 @@ class MiniPlayerState extends Equatable {
 // ─── Cubit ───────────────────────────────────────────────────────────────────
 
 /// Drives the mini-player widget.
-///
-/// Design principles:
-/// - **Show instantly**: As soon as [mediaItem] emits a non-null track, the
-///   mini-player appears — even if the engine is still loading. This gives
-///   the user immediate feedback that their tap registered.
-/// - **Survive resizes**: No animations or conditions based on screen size.
-///   Visibility is purely data-driven ([isVisible]).
-/// - **Minimal state machine**: One [MiniPlayerState] with boolean flags
-///   instead of a sealed class hierarchy with 5+ subtypes.
 class MiniPlayerCubit extends Cubit<MiniPlayerState> {
   final BloomeePlayerCubit _playerCubit;
   StreamSubscription? _sub;
-    String? _dismissedId;
+  String? _dismissedId;
   bool _awaitingPause = false;
+
+  MiniPlayerCubit({required BloomeePlayerCubit playerCubit})
+      : _playerCubit = playerCubit,
+        super(const MiniPlayerState.hidden()) {
+    _listen();
+  }
 
   /// User closed the mini player (swipe down / X button).
   void dismiss() {
@@ -101,12 +98,6 @@ class MiniPlayerCubit extends Cubit<MiniPlayerState> {
     _awaitingPause = true;
     _playerCubit.bloomeePlayer.pause();
     emit(const MiniPlayerState.hidden());
-  }
-
-  MiniPlayerCubit({required BloomeePlayerCubit playerCubit})
-      : _playerCubit = playerCubit,
-        super(const MiniPlayerState.hidden()) {
-    _listen();
   }
 
   void _listen() {
@@ -122,18 +113,13 @@ class MiniPlayerCubit extends Cubit<MiniPlayerState> {
           (media, engineState, playing, resolving),
     ).listen((record) {
       final (media, engineState, playing, resolving) = record;
-                if (media == null || media.id == 'Null') {
-        if (state.isVisible) emit(const MiniPlayerState.hidden());
-        return;
-      }
 
       if (media == null || media.id == 'Null') {
         if (state.isVisible) emit(const MiniPlayerState.hidden());
         return;
       }
 
-      final track = mediaItemToTrack(media);
-                if (_dismissedId != null) {
+      if (_dismissedId != null) {
         if (media.id != _dismissedId) {
           _dismissedId = null; // new song -> show again
           _awaitingPause = false;
@@ -147,6 +133,8 @@ class MiniPlayerCubit extends Cubit<MiniPlayerState> {
           _dismissedId = null; // user resumed same song
         }
       }
+
+      final track = mediaItemToTrack(media);
 
       emit(MiniPlayerState(
         track: track,
